@@ -1,0 +1,1827 @@
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/KingScriptAE/No-sirve-nada./refs/heads/main/main.lua"))()
+local FLOW_SPEED = 5.5
+local BORDER_THICKNESS = 1.7
+local FIXED_FONT = Enum.Font.SourceSansBold
+local WhiteFlowTheme = ColorSequence.new({
+    ColorSequenceKeypoint.new(0.00, Color3.fromHex("0A1628")),
+    ColorSequenceKeypoint.new(0.25, Color3.fromHex("1A4A7A")),
+    ColorSequenceKeypoint.new(0.45, Color3.fromHex("4A8DB7")),
+    ColorSequenceKeypoint.new(0.55, Color3.fromHex("FFFFFF")),
+    ColorSequenceKeypoint.new(0.75, Color3.fromHex("7AB8D4")),
+    ColorSequenceKeypoint.new(0.85, Color3.fromHex("2A5A8A")),
+    ColorSequenceKeypoint.new(1.00, Color3.fromHex("0A1628")),
+})
+local borderAnimation
+local borderInitialized = false
+
+function gradient(text, startColor, endColor)
+    local result = ""
+    local chars = {}
+    for uchar in text:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+        table.insert(chars, uchar)
+    end
+    local length = #chars
+    for i = 1, length do
+        local t = (i - 1) / math.max(length - 1, 1)
+        local r = startColor.R + (endColor.R - startColor.R) * t
+        local g = startColor.G + (endColor.G - startColor.G) * t
+        local b = startColor.B + (endColor.B - startColor.B) * t
+        result = result .. string.format('<font color="rgb(%d,%d,%d)">%s</font>', 
+            math.floor(r * 255), math.floor(g * 255), math.floor(b * 255), chars[i])
+    end
+    return result
+end
+
+local function StartFontEnforcer()
+    if not Window or not Window.UIElements then 
+        task.wait(1)
+        if not Window or not Window.UIElements then return end
+    end  
+    local MainFrame = Window.UIElements.Main
+    local function setFont(instance)
+        if instance:IsA("TextLabel") or instance:IsA("TextButton") or instance:IsA("TextBox") then
+            pcall(function() 
+                instance.Font = FIXED_FONT 
+                instance.RichText = true
+            end)
+        end
+    end
+    for _, child in ipairs(MainFrame:GetDescendants()) do
+        setFont(child)
+    end
+    MainFrame.DescendantAdded:Connect(function(child)
+        setFont(child)
+    end)
+end
+
+local function createBorder(window)
+    if not window or not window.UIElements then
+        task.wait(1)
+        if not window or not window.UIElements then return nil end
+    end
+    local mainFrame = window.UIElements.Main
+    if not mainFrame then return nil end    
+    if mainFrame:FindFirstChild("FlowBorder") then return mainFrame.FlowBorder end    
+    if not mainFrame:FindFirstChildOfClass("UICorner") then
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 16)
+        corner.Parent = mainFrame
+    end    
+    local stroke = Instance.new("UIStroke")
+    stroke.Name = "FlowBorder"
+    stroke.Thickness = BORDER_THICKNESS
+    stroke.Color = Color3.new(1, 1, 1)
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.LineJoinMode = Enum.LineJoinMode.Round
+    stroke.Enabled = true
+    stroke.Parent = mainFrame    
+    local gradient = Instance.new("UIGradient")
+    gradient.Name = "StreamEffect"
+    gradient.Color = WhiteFlowTheme
+    gradient.Rotation = 0
+    gradient.Parent = stroke    
+    return stroke
+end
+
+local function startBorderAnimation(window)
+    if not window or not window.UIElements then return nil end
+    local mainFrame = window.UIElements.Main
+    if not mainFrame then return nil end    
+    local stroke = mainFrame:FindFirstChild("FlowBorder")
+    if not stroke then return nil end    
+    local gradient = stroke:FindFirstChild("StreamEffect")
+    if not gradient then return nil end    
+    if borderAnimation then borderAnimation:Disconnect() borderAnimation = nil end    
+    local animation
+    animation = game:GetService("RunService").Heartbeat:Connect(function()
+        if not stroke or stroke.Parent == nil then
+            animation:Disconnect()
+            return
+        end
+        gradient.Rotation = (tick() * FLOW_SPEED * 20) % 360
+    end)
+    borderAnimation = animation
+    return animation
+end
+
+Window = WindUI:CreateWindow({
+    Title = gradient("北极星", Color3.fromHex("#00FFAA"), Color3.fromHex("#00FFFF")), 
+    Author = gradient("作者:北极星script", Color3.fromHex("#00FFAA"), Color3.fromHex("#00AAFF")),
+    IconThemed = true,
+    Folder = "Atomic",
+    Transparent = true,
+    Theme = "Dark",
+    SideBarWidth = 120,
+    HideSearchBar = false,
+    ScrollBarEnabled = true,
+    User = {
+        Enabled = true,
+        Anonymous = false,
+        Callback = function()
+        end
+    },
+})
+
+Window:EditOpenButton({
+    Title = "北极星Script Hub",
+    CornerRadius = UDim.new(0, 12),
+    StrokeThickness = 0.5
+})
+Window:Tag({
+    Title = "免费版",
+    Radius = 5,
+    Color = Color3.fromHex("#FFB347"),
+})
+
+Window:SetToggleKey(Enum.KeyCode.F, true)
+
+if not borderInitialized then
+    task.spawn(function()
+        task.wait(0.5) 
+        local stroke = createBorder(Window)
+        if stroke then
+            startBorderAnimation(Window)
+            borderInitialized = true
+        end
+        
+        StartFontEnforcer()
+    end)
+end
+
+local originalOpenFunction = Window.Open
+Window.Open = function(...)
+    local result = originalOpenFunction(...)
+    if borderInitialized and not borderAnimation then
+        task.wait(0.1)
+        startBorderAnimation(Window)
+    end
+    return result
+end
+
+Window:OnClose(function()
+    if borderAnimation then
+        borderAnimation:Disconnect()
+        borderAnimation = nil
+    end
+end)
+
+local Tabs = {
+    Info = Window:Tab({ Title = gradient("信息", Color3.fromHex("#FFFFFF"), Color3.fromHex("#FF9900")), Icon = "info"}),
+    Main = Window:Tab({ Title = "主要功能", Icon = "triangle" }),
+    ESP = Window:Tab({ Title = "透视", Icon = "eye" }),
+    Magic = Window:Tab({ Title = "✨ 魔法", Icon = "wand" }),
+    Bing = Window:Tab({ Title = "兵工程", Icon = "triangle" }),
+    Shanguang = Window:Tab({ Title = "闪光", Icon = "triangle" }),
+}
+
+Tabs.Info:Section({Title = "欢迎使用"})
+Tabs.Info:Paragraph({
+    Title = "🌟 欢迎来到北极星Script Hub",
+    Desc = "感谢使用本脚本，祝您游戏愉快！",
+    Image = "https://play-lh.googleusercontent.com/7cIIPlWm4m7AGqVpEsIfyL-HW4cQla4ucXnfalMft1TMIYQIlf2vqgmthlZgbNAQoaQ",
+    ImageSize = 20,
+    ThumbnailSize = 120
+})
+
+-- ============================================
+-- 主要功能
+-- ============================================
+
+Tabs.Main:Slider({
+    Title = "移速",
+    Step = 1,
+    Value = {Min = 16, Max = 1000, Default = 16},
+    Callback = function(value)
+        pcall(function()
+            game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = value
+        end)
+    end
+})
+
+Tabs.Main:Slider({
+    Title = "跳跃高度",
+    Step = 1,
+    Value = {Min = 0, Max = 1000, Default = 50},
+    Callback = function(value)
+        pcall(function()
+            game.Players.LocalPlayer.Character.Humanoid.JumpPower = value
+        end)
+    end
+})
+
+_G.InfiniteJump = false
+Tabs.Main:Toggle({
+    Title = "无限跳跃",
+    Default = false,
+    Callback = function(value)
+        _G.InfiniteJump = value
+    end
+})
+game:GetService("UserInputService").JumpRequest:Connect(function()
+    if _G.InfiniteJump then
+        pcall(function()
+            game.Players.LocalPlayer.Character.Humanoid:ChangeState("Jumping")
+        end)
+    end
+end)
+
+Tabs.Main:Slider({
+    Title = "重力",
+    Step = 0.1,
+    Value = {Min = 0, Max = 500, Default = 196.2},
+    Callback = function(value)
+        workspace.Gravity = value
+    end
+})
+
+-- ============================================
+-- 极速奔跑
+-- ============================================
+local sprintEnabled = false
+local sprintSpeed = 50
+local sprintConnection = nil
+local normalSpeed = 16
+
+Tabs.Main:Toggle({
+    Title = "极速奔跑",
+    Default = false,
+    Callback = function(value)
+        sprintEnabled = value
+        if value then
+            if sprintConnection then sprintConnection:Disconnect() end
+            sprintConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                if sprintEnabled then
+                    local char = game.Players.LocalPlayer.Character
+                    if char then
+                        local hum = char:FindFirstChildOfClass("Humanoid")
+                        if hum then
+                            local input = game:GetService("UserInputService")
+                            if input:IsKeyDown(Enum.KeyCode.LeftShift) then
+                                hum.WalkSpeed = sprintSpeed
+                            else
+                                hum.WalkSpeed = normalSpeed
+                            end
+                        end
+                    end
+                end
+            end)
+        else
+            if sprintConnection then
+                sprintConnection:Disconnect()
+                sprintConnection = nil
+            end
+            local char = game.Players.LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    hum.WalkSpeed = normalSpeed
+                end
+            end
+        end
+    end
+})
+
+Tabs.Main:Slider({
+    Title = "奔跑速度",
+    Step = 1,
+    Value = {Min = 16, Max = 500, Default = 50},
+    Callback = function(value)
+        sprintSpeed = value
+    end
+})
+
+Tabs.Main:Slider({
+    Title = "正常移速",
+    Step = 1,
+    Value = {Min = 16, Max = 100, Default = 16},
+    Callback = function(value)
+        normalSpeed = value
+        if not sprintEnabled then
+            local char = game.Players.LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    hum.WalkSpeed = value
+                end
+            end
+        end
+    end
+})
+
+-- ============================================
+-- 速度V2 (TPWalk)
+-- ============================================
+local tpWalkEnabled = false
+local tpWalkConnection = nil
+local tpWalkSpeed = 5
+
+local function StartTPWalk(speed)
+    local char = game.Players.LocalPlayer.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not hrp then return end
+    
+    local states = {
+        Enum.HumanoidStateType.Climbing,
+        Enum.HumanoidStateType.FallingDown,
+        Enum.HumanoidStateType.Flying,
+        Enum.HumanoidStateType.Freefall,
+        Enum.HumanoidStateType.GettingUp,
+        Enum.HumanoidStateType.Jumping,
+        Enum.HumanoidStateType.Landed,
+        Enum.HumanoidStateType.Physics,
+        Enum.HumanoidStateType.PlatformStanding,
+        Enum.HumanoidStateType.Ragdoll,
+        Enum.HumanoidStateType.Running,
+        Enum.HumanoidStateType.RunningNoPhysics,
+        Enum.HumanoidStateType.Seated,
+        Enum.HumanoidStateType.StrafingNoPhysics,
+        Enum.HumanoidStateType.Swimming
+    }
+    for _, state in pairs(states) do
+        hum:SetStateEnabled(state, false)
+    end
+    
+    if tpWalkConnection then tpWalkConnection:Disconnect() end
+    tpWalkConnection = game:GetService("RunService").Heartbeat:Connect(function()
+        if not tpWalkEnabled or not char or not char.Parent then return end
+        local moveDir = hum.MoveDirection
+        if moveDir.Magnitude > 0 then
+            local teleportVector = moveDir * (speed / 10)
+            local raycastParams = RaycastParams.new()
+            raycastParams.FilterDescendantsInstances = {char}
+            raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+            local raycastResult = workspace:Raycast(hrp.Position, teleportVector, raycastParams)
+            if raycastResult then
+                teleportVector = (raycastResult.Position - hrp.Position).Unit * (speed / 10)
+            end
+            hrp.CFrame = hrp.CFrame + teleportVector
+        end
+    end)
+end
+
+local function StopTPWalk()
+    tpWalkEnabled = false
+    if tpWalkConnection then
+        tpWalkConnection:Disconnect()
+        tpWalkConnection = nil
+    end
+    local char = game.Players.LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            local states = {
+                Enum.HumanoidStateType.Climbing,
+                Enum.HumanoidStateType.FallingDown,
+                Enum.HumanoidStateType.Flying,
+                Enum.HumanoidStateType.Freefall,
+                Enum.HumanoidStateType.GettingUp,
+                Enum.HumanoidStateType.Jumping,
+                Enum.HumanoidStateType.Landed,
+                Enum.HumanoidStateType.Physics,
+                Enum.HumanoidStateType.PlatformStanding,
+                Enum.HumanoidStateType.Ragdoll,
+                Enum.HumanoidStateType.Running,
+                Enum.HumanoidStateType.RunningNoPhysics,
+                Enum.HumanoidStateType.Seated,
+                Enum.HumanoidStateType.StrafingNoPhysics,
+                Enum.HumanoidStateType.Swimming
+            }
+            for _, state in pairs(states) do
+                hum:SetStateEnabled(state, true)
+            end
+            hum.WalkSpeed = 16
+        end
+    end
+end
+
+Tabs.Main:Toggle({
+    Title = "速度V2 (TPWalk)",
+    Default = false,
+    Callback = function(value)
+        tpWalkEnabled = value
+        if value then
+            StartTPWalk(tpWalkSpeed)
+        else
+            StopTPWalk()
+        end
+    end
+})
+
+Tabs.Main:Slider({
+    Title = "TPWalk速度",
+    Step = 1,
+    Value = {Min = 0, Max = 20, Default = 5},
+    Callback = function(value)
+        tpWalkSpeed = value
+        if tpWalkEnabled then
+            StartTPWalk(value)
+        end
+    end
+})
+
+-- ============================================
+-- 北极星飞行
+-- ============================================
+local flyEnabled = false
+local flyConnection = nil
+local flySpeed = 50
+local flyParticles = {}
+
+local function CreateFlyEffects(char)
+    local head = char:FindFirstChild("Head")
+    if not head then return end
+    
+    local headFire = Instance.new("ParticleEmitter")
+    headFire.Name = "北极星火焰_头"
+    headFire.Texture = "rbxassetid://271036377"
+    headFire.Color = ColorSequence.new(Color3.fromRGB(0, 255, 50))
+    headFire.Rate = 80
+    headFire.Lifetime = NumberRange.new(0.5, 1)
+    headFire.SpreadAngle = Vector2.new(45, 45)
+    headFire.VelocityInheritance = 0
+    headFire.Speed = NumberRange.new(2, 5)
+    headFire.Size = NumberSequence.new(2)
+    headFire.Transparency = NumberSequence.new(0.3, 0.8)
+    headFire.Parent = head
+    table.insert(flyParticles, headFire)
+    
+    local leftHorn = Instance.new("Part")
+    leftHorn.Name = "北极星角_左"
+    leftHorn.Size = Vector3.new(0.3, 1.5, 0.3)
+    leftHorn.CFrame = head.CFrame * CFrame.new(-0.8, 0.5, 0) * CFrame.Angles(0, 0, math.rad(-20))
+    leftHorn.BrickColor = BrickColor.new("Really red")
+    leftHorn.Material = Enum.Material.Neon
+    leftHorn.Anchored = true
+    leftHorn.CanCollide = false
+    leftHorn.Transparency = 0.2
+    leftHorn.Parent = char
+    
+    local rightHorn = Instance.new("Part")
+    rightHorn.Name = "北极星角_右"
+    rightHorn.Size = Vector3.new(0.3, 1.5, 0.3)
+    rightHorn.CFrame = head.CFrame * CFrame.new(0.8, 0.5, 0) * CFrame.Angles(0, 0, math.rad(20))
+    rightHorn.BrickColor = BrickColor.new("Really red")
+    rightHorn.Material = Enum.Material.Neon
+    rightHorn.Anchored = true
+    rightHorn.CanCollide = false
+    rightHorn.Transparency = 0.2
+    rightHorn.Parent = char
+    
+    table.insert(flyParticles, leftHorn)
+    table.insert(flyParticles, rightHorn)
+    
+    local hornFire1 = Instance.new("ParticleEmitter")
+    hornFire1.Texture = "rbxassetid://271036377"
+    hornFire1.Color = ColorSequence.new(Color3.fromRGB(255, 50, 0))
+    hornFire1.Rate = 40
+    hornFire1.Lifetime = NumberRange.new(0.3, 0.8)
+    hornFire1.SpreadAngle = Vector2.new(30, 30)
+    hornFire1.VelocityInheritance = 0
+    hornFire1.Speed = NumberRange.new(1, 3)
+    hornFire1.Size = NumberSequence.new(1.5)
+    hornFire1.Transparency = NumberSequence.new(0.2, 0.7)
+    hornFire1.Parent = leftHorn
+    
+    local hornFire2 = Instance.new("ParticleEmitter")
+    hornFire2.Texture = "rbxassetid://271036377"
+    hornFire2.Color = ColorSequence.new(Color3.fromRGB(255, 50, 0))
+    hornFire2.Rate = 40
+    hornFire2.Lifetime = NumberRange.new(0.3, 0.8)
+    hornFire2.SpreadAngle = Vector2.new(30, 30)
+    hornFire2.VelocityInheritance = 0
+    hornFire2.Speed = NumberRange.new(1, 3)
+    hornFire2.Size = NumberSequence.new(1.5)
+    hornFire2.Transparency = NumberSequence.new(0.2, 0.7)
+    hornFire2.Parent = rightHorn
+    
+    table.insert(flyParticles, hornFire1)
+    table.insert(flyParticles, hornFire2)
+end
+
+local function ClearFlyEffects()
+    for _, obj in pairs(flyParticles) do
+        pcall(function() obj:Destroy() end)
+    end
+    flyParticles = {}
+end
+
+local function StartFly()
+    local char = game.Players.LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    ClearFlyEffects()
+    CreateFlyEffects(char)
+    
+    local bodyVel = Instance.new("BodyVelocity")
+    bodyVel.Name = "北极星飞行"
+    bodyVel.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+    bodyVel.Velocity = Vector3.new(0, 0, 0)
+    bodyVel.Parent = hrp
+    
+    table.insert(flyParticles, bodyVel)
+    
+    if flyConnection then flyConnection:Disconnect() end
+    flyConnection = game:GetService("RunService").Heartbeat:Connect(function()
+        if not flyEnabled or not char or not char.Parent then
+            return
+        end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        local up = Vector3.new(0, 1, 0)
+        local forward = hrp.CFrame.LookVector
+        local right = hrp.CFrame.RightVector
+        
+        local vel = Vector3.new(0, 0, 0)
+        local input = game:GetService("UserInputService")
+        
+        if input:IsKeyDown(Enum.KeyCode.W) then
+            vel = vel + forward * flySpeed
+        end
+        if input:IsKeyDown(Enum.KeyCode.S) then
+            vel = vel - forward * flySpeed
+        end
+        if input:IsKeyDown(Enum.KeyCode.A) then
+            vel = vel - right * flySpeed
+        end
+        if input:IsKeyDown(Enum.KeyCode.D) then
+            vel = vel + right * flySpeed
+        end
+        if input:IsKeyDown(Enum.KeyCode.Space) then
+            vel = vel + up * flySpeed
+        end
+        if input:IsKeyDown(Enum.KeyCode.LeftShift) then
+            vel = vel - up * flySpeed
+        end
+        
+        if vel.Magnitude > 0 then
+            bodyVel.Velocity = vel
+        else
+            bodyVel.Velocity = Vector3.new(0, 0, 0)
+        end
+        
+        local head = char:FindFirstChild("Head")
+        if head then
+            local left = char:FindFirstChild("北极星角_左")
+            local right = char:FindFirstChild("北极星角_右")
+            if left then
+                left.CFrame = head.CFrame * CFrame.new(-0.8, 0.5, 0) * CFrame.Angles(0, 0, math.rad(-20))
+            end
+            if right then
+                right.CFrame = head.CFrame * CFrame.new(0.8, 0.5, 0) * CFrame.Angles(0, 0, math.rad(20))
+            end
+        end
+    end)
+end
+
+local function StopFly()
+    flyEnabled = false
+    if flyConnection then
+        flyConnection:Disconnect()
+        flyConnection = nil
+    end
+    ClearFlyEffects()
+    local char = game.Players.LocalPlayer.Character
+    if char then
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local bv = hrp:FindFirstChild("北极星飞行")
+            if bv then bv:Destroy() end
+        end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.PlatformStand = false
+        end
+    end
+end
+
+Tabs.Main:Toggle({
+    Title = "北极星飞行",
+    Default = false,
+    Callback = function(value)
+        flyEnabled = value
+        if value then
+            StartFly()
+        else
+            StopFly()
+        end
+    end
+})
+
+Tabs.Main:Slider({
+    Title = "飞行速度",
+    Step = 1,
+    Value = {Min = 10, Max = 200, Default = 50},
+    Callback = function(value)
+        flySpeed = value
+    end
+})
+
+-- ============================================
+-- 防甩飞
+-- ============================================
+_G.AntiFling = false
+local antiFlingConnection = nil
+
+Tabs.Main:Toggle({
+    Title = "防甩飞",
+    Default = false,
+    Callback = function(value)
+        _G.AntiFling = value
+        if value then
+            if antiFlingConnection then antiFlingConnection:Disconnect() end
+            antiFlingConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                if _G.AntiFling then
+                    local char = game.Players.LocalPlayer.Character
+                    if char then
+                        local hrp = char:FindFirstChild("HumanoidRootPart")
+                        if hrp then
+                            hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                        end
+                    end
+                end
+            end)
+        else
+            if antiFlingConnection then
+                antiFlingConnection:Disconnect()
+                antiFlingConnection = nil
+            end
+        end
+    end
+})
+
+-- ============================================
+-- 穿墙
+-- ============================================
+local noclipConnection
+_G.NoClip = false
+Tabs.Main:Toggle({
+    Title = "穿墙",
+    Default = false,
+    Callback = function(value)
+        _G.NoClip = value
+        if value then
+            noclipConnection = game:GetService("RunService").Stepped:Connect(function()
+                local char = game.Players.LocalPlayer.Character
+                if char then
+                    for _, part in pairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end)
+        else
+            if noclipConnection then
+                noclipConnection:Disconnect()
+                noclipConnection = nil
+            end
+            local char = game.Players.LocalPlayer.Character
+            if char then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
+            end
+        end
+    end
+})
+
+Tabs.Main:Toggle({
+    Title = "夜视",
+    Default = false,
+    Callback = function(value)
+        if value then
+            game.Lighting.Ambient = Color3.new(1, 1, 1)
+            game.Lighting.Brightness = 3
+        else
+            game.Lighting.Ambient = Color3.new(0, 0, 0)
+            game.Lighting.Brightness = 0
+        end
+    end
+})
+
+Tabs.Main:Toggle({
+    Title = "防AFK",
+    Default = false,
+    Callback = function(value)
+        if value then
+            game.Players.LocalPlayer.Idled:Connect(function()
+                game:GetService("VirtualUser"):Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                task.wait(1)
+                game:GetService("VirtualUser"):Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+            end)
+        end
+    end
+})
+
+-- ============================================
+-- 魔法标签页
+-- ============================================
+
+-- 假断腿（机械义肢）
+local fakeLegEnabled = false
+local fakeLegParts = {}
+
+MagicTab:Toggle({
+    Title = "假断腿（机械义肢）",
+    Default = false,
+    Callback = function(value)
+        fakeLegEnabled = value
+        local char = game.Players.LocalPlayer.Character
+        if not char then return end
+        
+        if value then
+            local leftLeg = char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftLeg")
+            local rightLeg = char:FindFirstChild("Right Leg") or char:FindFirstChild("RightLeg")
+            
+            if leftLeg and leftLeg:IsA("BasePart") then
+                leftLeg.BrickColor = BrickColor.new("Medium stone grey")
+                leftLeg.Material = Enum.Material.Metal
+                leftLeg.Size = Vector3.new(1.2, 1.5, 1.2)
+                local glow = Instance.new("Part")
+                glow.Name = "LegGlow"
+                glow.Size = Vector3.new(1, 0.2, 0.2)
+                glow.Position = leftLeg.Position + Vector3.new(0, 0.3, 0)
+                glow.BrickColor = BrickColor.new("Bright blue")
+                glow.Material = Enum.Material.Neon
+                glow.Anchored = true
+                glow.CanCollide = false
+                glow.Parent = char
+                table.insert(fakeLegParts, glow)
+            end
+            
+            if rightLeg and rightLeg:IsA("BasePart") then
+                rightLeg.BrickColor = BrickColor.new("Medium stone grey")
+                rightLeg.Material = Enum.Material.Metal
+                rightLeg.Size = Vector3.new(1.2, 1.5, 1.2)
+                local glow = Instance.new("Part")
+                glow.Name = "LegGlow"
+                glow.Size = Vector3.new(1, 0.2, 0.2)
+                glow.Position = rightLeg.Position + Vector3.new(0, 0.3, 0)
+                glow.BrickColor = BrickColor.new("Bright blue")
+                glow.Material = Enum.Material.Neon
+                glow.Anchored = true
+                glow.CanCollide = false
+                glow.Parent = char
+                table.insert(fakeLegParts, glow)
+            end
+            print("✅ 机械义肢已安装")
+        else
+            local leftLeg = char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftLeg")
+            local rightLeg = char:FindFirstChild("Right Leg") or char:FindFirstChild("RightLeg")
+            if leftLeg then
+                leftLeg.BrickColor = BrickColor.new("Bright red")
+                leftLeg.Material = Enum.Material.SmoothPlastic
+                leftLeg.Size = Vector3.new(1, 2, 1)
+            end
+            if rightLeg then
+                rightLeg.BrickColor = BrickColor.new("Bright red")
+                rightLeg.Material = Enum.Material.SmoothPlastic
+                rightLeg.Size = Vector3.new(1, 2, 1)
+            end
+            for _, part in pairs(fakeLegParts) do
+                pcall(function() part:Destroy() end)
+            end
+            fakeLegParts = {}
+            print("❌ 已恢复")
+        end
+    end
+})
+
+-- 假无头
+MagicTab:Toggle({
+    Title = "假无头",
+    Default = false,
+    Callback = function(value)
+        local char = game.Players.LocalPlayer.Character
+        if not char then return end
+        local head = char:FindFirstChild("Head")
+        if head and head:IsA("BasePart") then
+            head.Transparency = value and 1 or 0
+            head.CanCollide = not value
+        end
+    end
+})
+
+-- 伪装
+local copyEnabled = false
+local copyTarget = nil
+local copyConnection = nil
+
+MagicTab:Input({
+    Title = "伪装目标ID",
+    Placeholder = "输入玩家名",
+    Callback = function(input)
+        copyTarget = input
+    end
+})
+
+MagicTab:Toggle({
+    Title = "开启伪装",
+    Default = false,
+    Callback = function(value)
+        copyEnabled = value
+        if value then
+            if not copyTarget or copyTarget == "" then
+                print("❌ 请先输入玩家名")
+                return
+            end
+            local targetPlayer = nil
+            for _, p in pairs(game.Players:GetPlayers()) do
+                if p.Name:lower():find(copyTarget:lower()) or p.DisplayName:lower():find(copyTarget:lower()) then
+                    targetPlayer = p
+                    break
+                end
+            end
+            if not targetPlayer then
+                print("❌ 找不到玩家: " .. copyTarget)
+                return
+            end
+            local char = game.Players.LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    hum.DisplayName = targetPlayer.DisplayName
+                end
+            end
+            if copyConnection then copyConnection:Disconnect() end
+            copyConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                if not copyEnabled then return end
+                local char2 = game.Players.LocalPlayer.Character
+                if char2 then
+                    local hum2 = char2:FindFirstChildOfClass("Humanoid")
+                    if hum2 and targetPlayer then
+                        hum2.DisplayName = targetPlayer.DisplayName
+                    end
+                end
+            end)
+            print("✅ 已伪装成: " .. targetPlayer.Name)
+        else
+            if copyConnection then
+                copyConnection:Disconnect()
+                copyConnection = nil
+            end
+            local char = game.Players.LocalPlayer.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    hum.DisplayName = game.Players.LocalPlayer.Name
+                end
+            end
+            print("❌ 已解除伪装")
+        end
+    end
+})
+
+-- 夺舍
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local lp = game.Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local heartbeatConnection = nil
+local activeClone = nil
+local selectedTargetName = ""
+
+local function resetToNormal()
+    if heartbeatConnection then heartbeatConnection:Disconnect() end
+    if activeClone then activeClone:Destroy() activeClone = nil end
+    
+    local realChar = lp.Character
+    if realChar then
+        lp.Character = realChar
+        camera.CameraSubject = realChar:FindFirstChildOfClass("Humanoid")
+        for _, v in ipairs(realChar:GetDescendants()) do
+            if v:IsA("BasePart") or v:IsA("Decal") then v.Transparency = 0 end
+        end
+        if realChar:FindFirstChild("HumanoidRootPart") then
+            realChar.HumanoidRootPart.CanCollide = true
+        end
+    end
+end
+
+local function startPossess(targetName)
+    local target = Players:FindFirstChild(targetName)
+    if not target or not target.Character then 
+        print("❌ 目标玩家不存在或角色未加载")
+        return 
+    end
+
+    resetToNormal()
+    task.wait(0.2)
+
+    local targetChar = target.Character
+    local realChar = lp.Character
+
+    targetChar.Archivable = true
+    local clone = targetChar:Clone()
+    clone.Name = "PossessedClone"
+    clone.Parent = workspace
+    activeClone = clone
+
+    local cloneHum = clone:FindFirstChildOfClass("Humanoid")
+    local cloneRoot = clone:FindFirstChild("HumanoidRootPart")
+
+    if realChar then
+        for _, v in ipairs(realChar:GetDescendants()) do
+            if v:IsA("BasePart") or v:IsA("Decal") then v.Transparency = 1 end
+        end
+        if realChar:FindFirstChild("HumanoidRootPart") then
+            realChar.HumanoidRootPart.CanCollide = false
+        end
+    end
+
+    lp.Character = clone
+    camera.CameraSubject = cloneHum
+
+    local animate = clone:FindFirstChild("Animate")
+    if animate then
+        animate.Disabled = true
+        task.wait(0.1)
+        animate.Disabled = false
+    end
+
+    heartbeatConnection = RunService.Heartbeat:Connect(function()
+        if clone and cloneRoot and realChar and realChar:FindFirstChild("HumanoidRootPart") then
+            realChar.HumanoidRootPart.CFrame = cloneRoot.CFrame
+        end
+    end)
+
+    print("✅ 已夺舍: " .. targetName)
+end
+
+-- 使用 WindUI 原生 Dropdown
+MagicTab:Dropdown({
+    Title = "选择夺舍目标",
+    Values = {},
+    Callback = function(value)
+        selectedTargetName = value
+        print("📌 已选择: " .. value)
+    end
+})
+
+MagicTab:Button({
+    Title = "🔄 刷新玩家列表",
+    Callback = function()
+        local names = {}
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= lp then
+                table.insert(names, p.Name)
+            end
+        end
+        for _, child in pairs(MagicTab:GetChildren()) do
+            if child:IsA("Dropdown") and child.Title == "选择夺舍目标" then
+                child:Refresh(names)
+                break
+            end
+        end
+        print("✅ 已刷新玩家列表")
+    end
+})
+
+MagicTab:Button({
+    Title = "👻 夺舍",
+    Callback = function()
+        if selectedTargetName ~= "" then
+            startPossess(selectedTargetName)
+        else
+            print("❌ 请先选择一名玩家")
+        end
+    end
+})
+
+MagicTab:Button({
+    Title = "🔄 解除夺舍",
+    Callback = function()
+        resetToNormal()
+        print("✅ 已解除夺舍")
+    end
+})
+
+-- ============================================
+-- 透视标签页
+-- ============================================
+
+local espEnabled = false
+local box2DEnabled = false
+local nameEnabled = false
+local distEnabled = false
+local espObjects = {}
+local box2DObjects = {}
+local nameObjects = {}
+local distObjects = {}
+local distConnections = {}
+
+local function ClearESP()
+    for _, obj in pairs(espObjects) do
+        pcall(function() obj:Destroy() end)
+    end
+    espObjects = {}
+end
+
+local function ClearBox2D()
+    for _, obj in pairs(box2DObjects) do
+        pcall(function() obj:Destroy() end)
+    end
+    box2DObjects = {}
+end
+
+local function ClearNames()
+    for _, obj in pairs(nameObjects) do
+        pcall(function() obj:Destroy() end)
+    end
+    nameObjects = {}
+end
+
+local function ClearDist()
+    for _, obj in pairs(distObjects) do
+        pcall(function() obj:Destroy() end)
+    end
+    distObjects = {}
+    for _, conn in pairs(distConnections) do
+        pcall(function() conn:Disconnect() end)
+    end
+    distConnections = {}
+end
+
+local function UpdateESP()
+    ClearESP()
+    if not espEnabled then return end
+    
+    for _, p in pairs(game.Players:GetPlayers()) do
+        if p ~= game.Players.LocalPlayer then
+            local targetChar = p.Character
+            if targetChar then
+                local targetHum = targetChar:FindFirstChildOfClass("Humanoid")
+                if targetHum and targetHum.Health > 0 then
+                    local highlight = Instance.new("Highlight")
+                    highlight.Adornee = targetChar
+                    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                    highlight.FillTransparency = 0.5
+                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    highlight.OutlineTransparency = 0
+                    highlight.Parent = targetChar
+                    table.insert(espObjects, highlight)
+                end
+            end
+        end
+    end
+end
+
+local function UpdateBox2D()
+    ClearBox2D()
+    if not box2DEnabled then return end
+    
+    for _, p in pairs(game.Players:GetPlayers()) do
+        if p ~= game.Players.LocalPlayer then
+            local targetChar = p.Character
+            if targetChar then
+                local rootPart = targetChar:FindFirstChild("HumanoidRootPart")
+                if rootPart then
+                    local bbGui = Instance.new("BillboardGui")
+                    bbGui.Adornee = rootPart
+                    bbGui.Size = UDim2.new(4.5, 0, 6, 0)
+                    bbGui.AlwaysOnTop = true
+                    bbGui.Parent = rootPart
+                    table.insert(box2DObjects, bbGui)
+                    
+                    local boxFrame = Instance.new("Frame")
+                    boxFrame.Size = UDim2.new(1, 0, 1, 0)
+                    boxFrame.BackgroundTransparency = 1
+                    boxFrame.BorderSizePixel = 0
+                    boxFrame.Parent = bbGui
+                    
+                    local boxStroke = Instance.new("UIStroke")
+                    boxStroke.Color = Color3.fromRGB(0, 229, 255)
+                    boxStroke.Thickness = 1.8
+                    boxStroke.Parent = boxFrame
+                end
+            end
+        end
+    end
+end
+
+local function UpdateNames()
+    ClearNames()
+    if not nameEnabled then return end
+    
+    for _, p in pairs(game.Players:GetPlayers()) do
+        if p ~= game.Players.LocalPlayer then
+            local targetChar = p.Character
+            if targetChar then
+                local rootPart = targetChar:FindFirstChild("HumanoidRootPart")
+                if rootPart then
+                    local billboard = Instance.new("BillboardGui")
+                    billboard.Adornee = rootPart
+                    billboard.Size = UDim2.new(0, 150, 0, 25)
+                    billboard.StudsOffset = Vector3.new(0, 3, 0)
+                    billboard.AlwaysOnTop = true
+                    billboard.Parent = rootPart
+                    table.insert(nameObjects, billboard)
+                    
+                    local label = Instance.new("TextLabel")
+                    label.Size = UDim2.new(1, 0, 1, 0)
+                    label.BackgroundTransparency = 1
+                    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    label.Text = p.Name
+                    label.TextScaled = true
+                    label.Font = Enum.Font.SourceSansBold
+                    label.Parent = billboard
+                    table.insert(nameObjects, label)
+                end
+            end
+        end
+    end
+end
+
+local function UpdateDist()
+    ClearDist()
+    if not distEnabled then return end
+    
+    for _, p in pairs(game.Players:GetPlayers()) do
+        if p ~= game.Players.LocalPlayer then
+            local targetChar = p.Character
+            if targetChar then
+                local rootPart = targetChar:FindFirstChild("HumanoidRootPart")
+                if rootPart then
+                    local billboard = Instance.new("BillboardGui")
+                    billboard.Adornee = rootPart
+                    billboard.Size = UDim2.new(0, 100, 0, 20)
+                    billboard.StudsOffset = Vector3.new(0, -2, 0)
+                    billboard.AlwaysOnTop = true
+                    billboard.Parent = rootPart
+                    table.insert(distObjects, billboard)
+                    
+                    local label = Instance.new("TextLabel")
+                    label.Size = UDim2.new(1, 0, 1, 0)
+                    label.BackgroundTransparency = 1
+                    label.TextColor3 = Color3.fromRGB(255, 255, 0)
+                    label.Text = "0m"
+                    label.TextScaled = true
+                    label.Font = Enum.Font.SourceSans
+                    label.Parent = billboard
+                    table.insert(distObjects, label)
+                    
+                    local conn = game:GetService("RunService").Heartbeat:Connect(function()
+                        if not distEnabled or not billboard then
+                            if billboard then billboard.Enabled = false end
+                            return
+                        end
+                        local localChar = game.Players.LocalPlayer.Character
+                        if not localChar then return end
+                        local localRoot = localChar:FindFirstChild("HumanoidRootPart")
+                        if not localRoot then return end
+                        local targetRoot = rootPart
+                        if not targetRoot then return end
+                        local dist = math.floor((targetRoot.Position - localRoot.Position).Magnitude)
+                        label.Text = dist .. "m"
+                        billboard.Enabled = true
+                    end)
+                    table.insert(distConnections, conn)
+                end
+            end
+        end
+    end
+end
+
+-- ============================================
+-- 射线
+-- ============================================
+local tracerEnabled = false
+local tracerLines = {}
+local tracerConnections = {}
+
+local function ClearTracers()
+    for _, line in pairs(tracerLines) do
+        pcall(function() line:Remove() end)
+    end
+    tracerLines = {}
+    for _, conn in pairs(tracerConnections) do
+        pcall(function() conn:Disconnect() end)
+    end
+    tracerConnections = {}
+end
+
+-- ============================================
+-- 骨骼线条
+-- ============================================
+local skeletonEnabled = false
+local skeletonObjects = {}
+local skeletonConnections = {}
+
+local function ClearSkeleton()
+    for _, obj in pairs(skeletonObjects) do
+        pcall(function() obj:Remove() end)
+    end
+    skeletonObjects = {}
+    for _, conn in pairs(skeletonConnections) do
+        pcall(function() conn:Disconnect() end)
+    end
+    skeletonConnections = {}
+end
+
+-- ============================================
+-- 血量显示
+-- ============================================
+local healthEnabled = false
+local healthObjects = {}
+local healthConnections = {}
+
+local function ClearHealth()
+    for _, obj in pairs(healthObjects) do
+        pcall(function() obj:Remove() end)
+    end
+    healthObjects = {}
+    for _, conn in pairs(healthConnections) do
+        pcall(function() conn:Disconnect() end)
+    end
+    healthConnections = {}
+end
+
+-- ============================================
+-- 3D方框
+-- ============================================
+local box3DEnabled = false
+local box3DObjects = {}
+local box3DConnections = {}
+
+local function ClearBox3D()
+    for _, obj in pairs(box3DObjects) do
+        pcall(function() obj:Remove() end)
+    end
+    box3DObjects = {}
+    for _, conn in pairs(box3DConnections) do
+        pcall(function() conn:Disconnect() end)
+    end
+    box3DConnections = {}
+end
+
+-- ============================================
+-- 量子HUD卡片
+-- ============================================
+local cardEnabled = false
+local cardObjects = {}
+local cardConnections = {}
+
+local function ClearCards()
+    for _, obj in pairs(cardObjects) do
+        pcall(function() obj:Destroy() end)
+    end
+    cardObjects = {}
+    for _, conn in pairs(cardConnections) do
+        pcall(function() conn:Disconnect() end)
+    end
+    cardConnections = {}
+end
+
+local function CreateCard(player)
+    local char = player.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    
+    local card = Instance.new("BillboardGui")
+    card.Name = "QuantumCard"
+    card.Adornee = root
+    card.Size = UDim2.new(0, 220, 0, 80)
+    card.StudsOffset = Vector3.new(0, 3.5, 0)
+    card.AlwaysOnTop = true
+    card.Parent = root
+    
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(20, 10, 15)
+    frame.BackgroundTransparency = 0.15
+    frame.BorderSizePixel = 0
+    frame.Parent = card
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+    
+    local stroke = Instance.new("UIStroke", frame)
+    stroke.Color = Color3.fromRGB(255, 150, 200)
+    stroke.Thickness = 2
+    
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1, -10, 0.4, 0)
+    nameLabel.Position = UDim2.new(0, 10, 0, 5)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.Text = player.DisplayName or player.Name
+    nameLabel.TextSize = 18
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.Parent = frame
+    
+    local hpLabel = Instance.new("TextLabel")
+    hpLabel.Size = UDim2.new(1, -10, 0.3, 0)
+    hpLabel.Position = UDim2.new(0, 10, 0, 40)
+    hpLabel.BackgroundTransparency = 1
+    hpLabel.TextColor3 = Color3.fromRGB(255, 200, 210)
+    hpLabel.Text = "❤️ " .. math.floor(hum.Health) .. "/" .. hum.MaxHealth
+    hpLabel.TextSize = 14
+    hpLabel.Font = Enum.Font.Gotham
+    hpLabel.TextXAlignment = Enum.TextXAlignment.Left
+    hpLabel.Parent = frame
+    
+    local weapon = char:FindFirstChildOfClass("Tool")
+    local weaponLabel = Instance.new("TextLabel")
+    weaponLabel.Size = UDim2.new(1, -10, 0.3, 0)
+    weaponLabel.Position = UDim2.new(0, 10, 0, 60)
+    weaponLabel.BackgroundTransparency = 1
+    weaponLabel.TextColor3 = Color3.fromRGB(255, 220, 230)
+    weaponLabel.Text = "🔫 " .. (weapon and weapon.Name or "无武器")
+    weaponLabel.TextSize = 13
+    weaponLabel.Font = Enum.Font.Gotham
+    weaponLabel.TextXAlignment = Enum.TextXAlignment.Left
+    weaponLabel.Parent = frame
+    
+    table.insert(cardObjects, card)
+    return card
+end
+
+local function UpdateCards()
+    ClearCards()
+    if not cardEnabled then return end
+    for _, p in pairs(game.Players:GetPlayers()) do
+        if p ~= game.Players.LocalPlayer then
+            CreateCard(p)
+        end
+    end
+end
+
+-- ============================================
+-- 透视开关
+-- ============================================
+Tabs.ESP:Toggle({
+    Title = "玩家透视",
+    Default = false,
+    Callback = function(value)
+        espEnabled = value
+        if value then UpdateESP() else ClearESP() end
+    end
+})
+
+Tabs.ESP:Toggle({
+    Title = "2D方框",
+    Default = false,
+    Callback = function(value)
+        box2DEnabled = value
+        if value then UpdateBox2D() else ClearBox2D() end
+    end
+})
+
+Tabs.ESP:Toggle({
+    Title = "显示名字",
+    Default = false,
+    Callback = function(value)
+        nameEnabled = value
+        if value then UpdateNames() else ClearNames() end
+    end
+})
+
+Tabs.ESP:Toggle({
+    Title = "显示距离",
+    Default = false,
+    Callback = function(value)
+        distEnabled = value
+        if value then UpdateDist() else ClearDist() end
+    end
+})
+
+Tabs.ESP:Button({
+    Title = "刷新透视",
+    Callback = function()
+        if espEnabled then UpdateESP() end
+        if box2DEnabled then UpdateBox2D() end
+        if nameEnabled then UpdateNames() end
+        if distEnabled then UpdateDist() end
+    end
+})
+
+Tabs.ESP:Toggle({
+    Title = "地图透视",
+    Default = false,
+    Callback = function(value)
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") and not v.Parent:FindFirstChildWhichIsA("Humanoid") then
+                pcall(function()
+                    v.LocalTransparencyModifier = value and 0.5 or 0
+                end)
+            end
+        end
+    end
+})
+
+Tabs.ESP:Button({
+    Title = "去雾",
+    Callback = function()
+        game.Lighting.FogEnd = 100000
+        for _, v in pairs(game.Lighting:GetDescendants()) do
+            if v:IsA("Atmosphere") then
+                v:Destroy()
+            end
+        end
+    end
+})
+
+-- ============================================
+-- 射线
+-- ============================================
+Tabs.ESP:Toggle({
+    Title = "射线",
+    Default = false,
+    Callback = function(value)
+        tracerEnabled = value
+        if value then
+            for _, p in pairs(game.Players:GetPlayers()) do
+                if p ~= game.Players.LocalPlayer then
+                    local targetChar = p.Character
+                    if targetChar then
+                        local rootPart = targetChar:FindFirstChild("HumanoidRootPart")
+                        if rootPart then
+                            local line = Drawing.new("Line")
+                            line.Thickness = 1.5
+                            line.Transparency = 1
+                            line.Visible = false
+                            line.Color = Color3.fromRGB(255, 0, 0)
+                            table.insert(tracerLines, line)
+                            
+                            local conn = game:GetService("RunService").RenderStepped:Connect(function()
+                                if not tracerEnabled or not line then
+                                    if line then line.Visible = false end
+                                    return
+                                end
+                                local localChar = game.Players.LocalPlayer.Character
+                                local targetChar2 = p.Character
+                                if not localChar or not targetChar2 then
+                                    line.Visible = false
+                                    return
+                                end
+                                local localRoot = localChar:FindFirstChild("HumanoidRootPart")
+                                local targetRoot2 = targetChar2:FindFirstChild("HumanoidRootPart")
+                                if not localRoot or not targetRoot2 then
+                                    line.Visible = false
+                                    return
+                                end
+                                local camera = workspace.CurrentCamera
+                                local localPos, localOn = camera:WorldToViewportPoint(localRoot.Position)
+                                local targetPos, targetOn = camera:WorldToViewportPoint(targetRoot2.Position)
+                                if localOn and targetOn then
+                                    line.From = Vector2.new(localPos.X, localPos.Y)
+                                    line.To = Vector2.new(targetPos.X, targetPos.Y)
+                                    line.Visible = true
+                                else
+                                    line.Visible = false
+                                end
+                            end)
+                            table.insert(tracerConnections, conn)
+                        end
+                    end
+                end
+            end
+        else
+            ClearTracers()
+        end
+    end
+})
+
+-- ============================================
+-- 骨骼线条
+-- ============================================
+Tabs.ESP:Toggle({
+    Title = "骨骼线条",
+    Default = false,
+    Callback = function(value)
+        skeletonEnabled = value
+        if value then
+            for _, p in pairs(game.Players:GetPlayers()) do
+                if p ~= game.Players.LocalPlayer then
+                    local char = p.Character
+                    if char then
+                        local parts = {
+                            head = char:FindFirstChild("Head"),
+                            upper = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso"),
+                            lower = char:FindFirstChild("LowerTorso") or char:FindFirstChild("HumanoidRootPart"),
+                            left_arm = char:FindFirstChild("LeftUpperArm") or char:FindFirstChild("LeftArm"),
+                            right_arm = char:FindFirstChild("RightUpperArm") or char:FindFirstChild("RightArm"),
+                            left_leg = char:FindFirstChild("LeftUpperLeg") or char:FindFirstChild("LeftLeg"),
+                            right_leg = char:FindFirstChild("RightUpperLeg") or char:FindFirstChild("RightLeg")
+                        }
+                        if parts.head and parts.upper then
+                            local lines = {}
+                            for i = 1, 6 do
+                                local line = Drawing.new("Line")
+                                line.Thickness = 1.5
+                                line.Color = Color3.fromRGB(255, 255, 255)
+                                line.Visible = false
+                                table.insert(lines, line)
+                            end
+                            table.insert(skeletonObjects, lines)
+                            
+                            local conn = game:GetService("RunService").RenderStepped:Connect(function()
+                                if not skeletonEnabled then
+                                    for _, line in pairs(lines) do
+                                        line.Visible = false
+                                    end
+                                    return
+                                end
+                                local char2 = p.Character
+                                if not char2 then
+                                    for _, line in pairs(lines) do
+                                        line.Visible = false
+                                    end
+                                    return
+                                end
+                                local parts2 = {
+                                    head = char2:FindFirstChild("Head"),
+                                    upper = char2:FindFirstChild("UpperTorso") or char2:FindFirstChild("Torso"),
+                                    lower = char2:FindFirstChild("LowerTorso") or char2:FindFirstChild("HumanoidRootPart"),
+                                    left_arm = char2:FindFirstChild("LeftUpperArm") or char2:FindFirstChild("LeftArm"),
+                                    right_arm = char2:FindFirstChild("RightUpperArm") or char2:FindFirstChild("RightArm"),
+                                    left_leg = char2:FindFirstChild("LeftUpperLeg") or char2:FindFirstChild("LeftLeg"),
+                                    right_leg = char2:FindFirstChild("RightUpperLeg") or char2:FindFirstChild("RightLeg")
+                                }
+                                if not parts2.head or not parts2.upper then
+                                    for _, line in pairs(lines) do
+                                        line.Visible = false
+                                    end
+                                    return
+                                end
+                                local camera = workspace.CurrentCamera
+                                local function toScreen(part)
+                                    if not part then return Vector2.new(0, 0), false end
+                                    local pos, on = camera:WorldToViewportPoint(part.Position)
+                                    return Vector2.new(pos.X, pos.Y), on
+                                end
+                                local headPos, _ = toScreen(parts2.head)
+                                local upperPos, _ = toScreen(parts2.upper)
+                                local lowerPos, _ = toScreen(parts2.lower)
+                                local larmPos, _ = toScreen(parts2.left_arm)
+                                local rarmPos, _ = toScreen(parts2.right_arm)
+                                local llegPos, _ = toScreen(parts2.left_leg)
+                                local rlegPos, _ = toScreen(parts2.right_leg)
+                                
+                                lines[1].From = headPos
+                                lines[1].To = upperPos
+                                lines[2].From = upperPos
+                                lines[2].To = lowerPos
+                                lines[3].From = upperPos
+                                lines[3].To = larmPos
+                                lines[4].From = upperPos
+                                lines[4].To = rarmPos
+                                lines[5].From = lowerPos
+                                lines[5].To = llegPos
+                                lines[6].From = lowerPos
+                                lines[6].To = rlegPos
+                                for _, line in pairs(lines) do
+                                    line.Visible = true
+                                end
+                            end)
+                            table.insert(skeletonConnections, conn)
+                        end
+                    end
+                end
+            end
+        else
+            ClearSkeleton()
+        end
+    end
+})
+
+-- ============================================
+-- 血量显示
+-- ============================================
+Tabs.ESP:Toggle({
+    Title = "血量显示",
+    Default = false,
+    Callback = function(value)
+        healthEnabled = value
+        if value then
+            for _, p in pairs(game.Players:GetPlayers()) do
+                if p ~= game.Players.LocalPlayer then
+                    local char = p.Character
+                    if char then
+                        local head = char:FindFirstChild("Head")
+                        local hum = char:FindFirstChildOfClass("Humanoid")
+                        if head and hum then
+                            local bar = Drawing.new("Square")
+                            bar.Filled = true
+                            bar.Visible = false
+                            local outline = Drawing.new("Square")
+                            outline.Filled = false
+                            outline.Visible = false
+                            local text = Drawing.new("Text")
+                            text.Center = true
+                            text.Outline = true
+                            text.Font = 2
+                            text.Size = 14
+                            text.Visible = false
+                            table.insert(healthObjects, {bar = bar, outline = outline, text = text})
+                            
+                            local conn = game:GetService("RunService").RenderStepped:Connect(function()
+                                if not healthEnabled then
+                                    bar.Visible = false
+                                    outline.Visible = false
+                                    text.Visible = false
+                                    return
+                                end
+                                local char2 = p.Character
+                                if not char2 then
+                                    bar.Visible = false
+                                    outline.Visible = false
+                                    text.Visible = false
+                                    return
+                                end
+                                local head2 = char2:FindFirstChild("Head")
+                                local hum2 = char2:FindFirstChildOfClass("Humanoid")
+                                if not head2 or not hum2 then
+                                    bar.Visible = false
+                                    outline.Visible = false
+                                    text.Visible = false
+                                    return
+                                end
+                                local camera = workspace.CurrentCamera
+                                local screenPos, onScreen = camera:WorldToViewportPoint(head2.Position)
+                                if onScreen then
+                                    local healthPercent = math.floor((hum2.Health / hum2.MaxHealth) * 100)
+                                    local barWidth = 100 * (healthPercent / 100)
+                                    local pos = Vector2.new(screenPos.X - 50, screenPos.Y - 30)
+                                    outline.Size = Vector2.new(100, 5)
+                                    outline.Position = pos
+                                    outline.Color = Color3.fromRGB(0, 0, 0)
+                                    outline.Visible = true
+                                    bar.Size = Vector2.new(barWidth, 5)
+                                    bar.Position = pos
+                                    bar.Color = Color3.fromRGB(255 * (1 - healthPercent/100), 255 * (healthPercent/100), 0)
+                                    bar.Visible = true
+                                    text.Text = tostring(healthPercent) .. "%"
+                                    text.Position = Vector2.new(screenPos.X, screenPos.Y - 40)
+                                    text.Visible = true
+                                else
+                                    bar.Visible = false
+                                    outline.Visible = false
+                                    text.Visible = false
+                                end
+                            end)
+                            table.insert(healthConnections, conn)
+                        end
+                    end
+                end
+            end
+        else
+            ClearHealth()
+        end
+    end
+})
+
+-- ============================================
+-- 3D方框
+-- ============================================
+Tabs.ESP:Toggle({
+    Title = "3D方框",
+    Default = false,
+    Callback = function(value)
+        box3DEnabled = value
+        if value then
+            for _, p in pairs(game.Players:GetPlayers()) do
+                if p ~= game.Players.LocalPlayer then
+                    local char = p.Character
+                    if char then
+                        local rootPart = char:FindFirstChild("HumanoidRootPart")
+                        if rootPart then
+                            local lines = {}
+                            for i = 1, 12 do
+                                local line = Drawing.new("Line")
+                                line.Thickness = 1
+                                line.Transparency = 0.7
+                                line.Color = Color3.fromRGB(0, 255, 0)
+                                line.Visible = false
+                                table.insert(lines, line)
+                            end
+                            table.insert(box3DObjects, lines)
+                            
+                            local conn = game:GetService("RunService").RenderStepped:Connect(function()
+                                if not box3DEnabled then
+                                    for _, line in pairs(lines) do
+                                        line.Visible = false
+                                    end
+                                    return
+                                end
+                                local char2 = p.Character
+                                if not char2 then
+                                    for _, line in pairs(lines) do
+                                        line.Visible = false
+                                    end
+                                    return
+                                end
+                                local rootPart2 = char2:FindFirstChild("HumanoidRootPart")
+                                if not rootPart2 then
+                                    for _, line in pairs(lines) do
+                                        line.Visible = false
+                                    end
+                                    return
+                                end
+                                local size = rootPart2.Size
+                                local cframe = rootPart2.CFrame
+                                local height = 5
+                                local min = Vector3.new(
+                                    cframe.Position.X - size.X/2,
+                                    cframe.Position.Y - height/2,
+                                    cframe.Position.Z - size.Z/2
+                                )
+                                local max = Vector3.new(
+                                    cframe.Position.X + size.X/2,
+                                    cframe.Position.Y + height/2,
+                                    cframe.Position.Z + size.Z/2
+                                )
+                                local vertices = {
+                                    Vector3.new(max.X, max.Y, max.Z),
+                                    Vector3.new(min.X, max.Y, max.Z),
+                                    Vector3.new(max.X, min.Y, max.Z),
+                                    Vector3.new(min.X, min.Y, max.Z),
+                                    Vector3.new(max.X, max.Y, min.Z),
+                                    Vector3.new(min.X, max.Y, min.Z),
+                                    Vector3.new(max.X, min.Y, min.Z),
+                                    Vector3.new(min.X, min.Y, min.Z)
+                                }
+                                local camera = workspace.CurrentCamera
+                                local screenVerts = {}
+                                for i, v in ipairs(vertices) do
+                                    local pos, onScreen = camera:WorldToViewportPoint(v)
+                                    screenVerts[i] = Vector2.new(pos.X, pos.Y)
+                                end
+                                local linePairs = {
+                                    {1,2},{2,4},{4,3},{3,1},
+                                    {5,6},{6,8},{8,7},{7,5},
+                                    {1,5},{2,6},{3,7},{4,8}
+                                }
+                                for i, pair in ipairs(linePairs) do
+                                    lines[i].From = screenVerts[pair[1]]
+                                    lines[i].To = screenVerts[pair[2]]
+                                    lines[i].Visible = true
+                                end
+                            end)
+                            table.insert(box3DConnections, conn)
+                        end
+                    end
+                end
+            end
+        else
+            ClearBox3D()
+        end
+    end
+})
+
+-- ============================================
+-- 量子HUD卡片
+-- ============================================
+Tabs.ESP:Toggle({
+    Title = "3D悬浮卡片",
+    Default = false,
+    Callback = function(value)
+        cardEnabled = value
+        if value then UpdateCards() else ClearCards() end
+    end
+})
+
+-- ============================================
+-- 兵工程
+-- ============================================
+local bingSection = Tabs.Bing:Section({
+    Title = "兵工程",
+})
+bingSection:Button({
+    Title = "执行兵工程脚本",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/ewiojh/1-hubsaodasvhj/main/binggongchang.lua"))()
+    end
+})
+
+-- ============================================
+-- 闪光
+-- ============================================
+local shanguangSection = Tabs.Shanguang:Section({
+    Title = "闪光",
+})
+shanguangSection:Button({
+    Title = "执行闪光脚本",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/ewiojh/susk/main/ppppppp.lua"))()
+    end
+})
+
+Window:SelectTab(1)
+
+print("✅ 北极星脚本完整版已加载")
+print("📌 主要功能: 移速 | 跳跃 | 无限跳跃 | 重力 | 极速奔跑 | TPWalk | 北极星飞行 | 防甩飞 | 穿墙 | 夜视 | 防AFK")
+print("📌 透视: 玩家透视 | 2D方框 | 显示名字 | 显示距离 | 地图透视 | 去雾 | 射线 | 骨骼线条 | 血量显示 | 3D方框 | 3D悬浮卡片")
+print("📌 魔法: 假断腿(机械义肢) | 假无头 | 伪装 | 夺舍")
+print("📌 兵工程: 执行兵工程脚本")
+print("📌 闪光: 执行闪光脚本")
