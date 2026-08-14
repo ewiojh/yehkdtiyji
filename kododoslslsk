@@ -178,7 +178,6 @@ Tabs.Info:Section({Title = "欢迎使用"})
 Tabs.Info:Paragraph({
     Title = "🌟 欢迎来到北极星Script Hub",
     Desc = "感谢使用本脚本，祝您游戏愉快！",
-    Image = "https://play-lh.googleusercontent.com/7cIIPlWm4m7AGqVpEsIfyL-HW4cQla4ucXnfalMft1TMIYQIlf2vqgmthlZgbNAQoaQ",
     ImageSize = 20,
     ThumbnailSize = 120
 })
@@ -422,7 +421,7 @@ Tabs.Main:Slider({
 })
 
 -- ============================================
--- 北极星飞行
+-- 北极星飞行（你原来的源码）
 -- ============================================
 local flyEnabled = false
 local flyConnection = nil
