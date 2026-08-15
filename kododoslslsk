@@ -143,6 +143,7 @@ if not borderInitialized then
             startBorderAnimation(Window)
             borderInitialized = true
         end
+        
         StartFontEnforcer()
     end)
 end
@@ -409,11 +410,90 @@ Tabs.Main:Slider({
 })
 
 -- ============================================
--- 飞行（无特效版）
+-- 飞行（原版 - 从你源码直接拿的）
 -- ============================================
 local flyEnabled = false
 local flyConnection = nil
 local flySpeed = 50
+local flyParticles = {}
+
+local function CreateFlyEffects(char)
+    local head = char:FindFirstChild("Head")
+    if not head then return end
+    
+    local headFire = Instance.new("ParticleEmitter")
+    headFire.Name = "北极星火焰_头"
+    headFire.Texture = "rbxassetid://271036377"
+    headFire.Color = ColorSequence.new(Color3.fromRGB(0, 255, 50))
+    headFire.Rate = 80
+    headFire.Lifetime = NumberRange.new(0.5, 1)
+    headFire.SpreadAngle = Vector2.new(45, 45)
+    headFire.VelocityInheritance = 0
+    headFire.Speed = NumberRange.new(2, 5)
+    headFire.Size = NumberSequence.new(2)
+    headFire.Transparency = NumberSequence.new(0.3, 0.8)
+    headFire.Parent = head
+    table.insert(flyParticles, headFire)
+    
+    local leftHorn = Instance.new("Part")
+    leftHorn.Name = "北极星角_左"
+    leftHorn.Size = Vector3.new(0.3, 1.5, 0.3)
+    leftHorn.CFrame = head.CFrame * CFrame.new(-0.8, 0.5, 0) * CFrame.Angles(0, 0, math.rad(-20))
+    leftHorn.BrickColor = BrickColor.new("Really red")
+    leftHorn.Material = Enum.Material.Neon
+    leftHorn.Anchored = true
+    leftHorn.CanCollide = false
+    leftHorn.Transparency = 0.2
+    leftHorn.Parent = char
+    
+    local rightHorn = Instance.new("Part")
+    rightHorn.Name = "北极星角_右"
+    rightHorn.Size = Vector3.new(0.3, 1.5, 0.3)
+    rightHorn.CFrame = head.CFrame * CFrame.new(0.8, 0.5, 0) * CFrame.Angles(0, 0, math.rad(20))
+    rightHorn.BrickColor = BrickColor.new("Really red")
+    rightHorn.Material = Enum.Material.Neon
+    rightHorn.Anchored = true
+    rightHorn.CanCollide = false
+    rightHorn.Transparency = 0.2
+    rightHorn.Parent = char
+    
+    table.insert(flyParticles, leftHorn)
+    table.insert(flyParticles, rightHorn)
+    
+    local hornFire1 = Instance.new("ParticleEmitter")
+    hornFire1.Texture = "rbxassetid://271036377"
+    hornFire1.Color = ColorSequence.new(Color3.fromRGB(255, 50, 0))
+    hornFire1.Rate = 40
+    hornFire1.Lifetime = NumberRange.new(0.3, 0.8)
+    hornFire1.SpreadAngle = Vector2.new(30, 30)
+    hornFire1.VelocityInheritance = 0
+    hornFire1.Speed = NumberRange.new(1, 3)
+    hornFire1.Size = NumberSequence.new(1.5)
+    hornFire1.Transparency = NumberSequence.new(0.2, 0.7)
+    hornFire1.Parent = leftHorn
+    
+    local hornFire2 = Instance.new("ParticleEmitter")
+    hornFire2.Texture = "rbxassetid://271036377"
+    hornFire2.Color = ColorSequence.new(Color3.fromRGB(255, 50, 0))
+    hornFire2.Rate = 40
+    hornFire2.Lifetime = NumberRange.new(0.3, 0.8)
+    hornFire2.SpreadAngle = Vector2.new(30, 30)
+    hornFire2.VelocityInheritance = 0
+    hornFire2.Speed = NumberRange.new(1, 3)
+    hornFire2.Size = NumberSequence.new(1.5)
+    hornFire2.Transparency = NumberSequence.new(0.2, 0.7)
+    hornFire2.Parent = rightHorn
+    
+    table.insert(flyParticles, hornFire1)
+    table.insert(flyParticles, hornFire2)
+end
+
+local function ClearFlyEffects()
+    for _, obj in pairs(flyParticles) do
+        pcall(function() obj:Destroy() end)
+    end
+    flyParticles = {}
+end
 
 local function StartFly()
     local char = game.Players.LocalPlayer.Character
@@ -421,11 +501,16 @@ local function StartFly()
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
     
+    ClearFlyEffects()
+    CreateFlyEffects(char)
+    
     local bodyVel = Instance.new("BodyVelocity")
     bodyVel.Name = "北极星飞行"
     bodyVel.MaxForce = Vector3.new(1e9, 1e9, 1e9)
     bodyVel.Velocity = Vector3.new(0, 0, 0)
     bodyVel.Parent = hrp
+    
+    table.insert(flyParticles, bodyVel)
     
     if flyConnection then flyConnection:Disconnect() end
     flyConnection = game:GetService("RunService").Heartbeat:Connect(function()
@@ -465,6 +550,18 @@ local function StartFly()
         else
             bodyVel.Velocity = Vector3.new(0, 0, 0)
         end
+        
+        local head = char:FindFirstChild("Head")
+        if head then
+            local left = char:FindFirstChild("北极星角_左")
+            local right = char:FindFirstChild("北极星角_右")
+            if left then
+                left.CFrame = head.CFrame * CFrame.new(-0.8, 0.5, 0) * CFrame.Angles(0, 0, math.rad(-20))
+            end
+            if right then
+                right.CFrame = head.CFrame * CFrame.new(0.8, 0.5, 0) * CFrame.Angles(0, 0, math.rad(20))
+            end
+        end
     end)
 end
 
@@ -474,6 +571,7 @@ local function StopFly()
         flyConnection:Disconnect()
         flyConnection = nil
     end
+    ClearFlyEffects()
     local char = game.Players.LocalPlayer.Character
     if char then
         local hrp = char:FindFirstChild("HumanoidRootPart")
@@ -481,11 +579,15 @@ local function StopFly()
             local bv = hrp:FindFirstChild("北极星飞行")
             if bv then bv:Destroy() end
         end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.PlatformStand = false
+        end
     end
 end
 
 Tabs.Main:Toggle({
-    Title = "飞行",
+    Title = "北极星飞行",
     Default = false,
     Callback = function(value)
         flyEnabled = value
