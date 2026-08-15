@@ -1,4 +1,4 @@
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.comKingScriptAE/No-sirve-nada./refs/heads/main/main.lua"))()
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/KingScriptAE/No-sirve-nada./refs/heads/main/main.lua"))()
 local FLOW_SPEED = 5.5
 local BORDER_THICKNESS = 1.7
 local FIXED_FONT = Enum.Font.SourceSansBold
@@ -608,7 +608,7 @@ Tabs.Main:Slider({
 })
 
 -- ============================================
--- 防甩飞（你原来源码里的）
+-- 防甩飞
 -- ============================================
 _G.AntiFling = false
 local antiFlingConnection = nil
