@@ -1,4 +1,4 @@
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/KingScriptAE/No-sirve-nada./refs/heads/main/main.lua"))()
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.comKingScriptAE/No-sirve-nada./refs/heads/main/main.lua"))()
 local FLOW_SPEED = 5.5
 local BORDER_THICKNESS = 1.7
 local FIXED_FONT = Enum.Font.SourceSansBold
@@ -143,7 +143,6 @@ if not borderInitialized then
             startBorderAnimation(Window)
             borderInitialized = true
         end
-        
         StartFontEnforcer()
     end)
 end
@@ -409,6 +408,9 @@ Tabs.Main:Slider({
     end
 })
 
+-- ============================================
+-- 飞行（你原来好使的源码）
+-- ============================================
 local flyEnabled = false
 local flyConnection = nil
 local flySpeed = 50
@@ -605,6 +607,9 @@ Tabs.Main:Slider({
     end
 })
 
+-- ============================================
+-- 防甩飞（你原来源码里的）
+-- ============================================
 _G.AntiFling = false
 local antiFlingConnection = nil
 
@@ -698,6 +703,10 @@ Tabs.Main:Toggle({
         end
     end
 })
+
+-- ============================================
+-- 透视标签页
+-- ============================================
 
 local espEnabled = false
 local box2DEnabled = false
