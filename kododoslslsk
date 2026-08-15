@@ -169,7 +169,6 @@ local Tabs = {
     Info = Window:Tab({ Title = gradient("信息", Color3.fromHex("#FFFFFF"), Color3.fromHex("#FF9900")), Icon = "info"}),
     Main = Window:Tab({ Title = "主要功能", Icon = "triangle" }),
     ESP = Window:Tab({ Title = "透视", Icon = "eye" }),
-    Magic = Window:Tab({ Title = "✨ 魔法", Icon = "wand" }),
     Bing = Window:Tab({ Title = "兵工程", Icon = "triangle" }),
     Shanguang = Window:Tab({ Title = "闪光", Icon = "triangle" }),
 }
@@ -696,89 +695,6 @@ Tabs.Main:Toggle({
                 task.wait(1)
                 game:GetService("VirtualUser"):Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
             end)
-        end
-    end
-})
-
-local fakeLegEnabled = false
-local fakeLegParts = {}
-
-MagicTab:Toggle({
-    Title = "假断腿（机械义肢）",
-    Default = false,
-    Callback = function(value)
-        fakeLegEnabled = value
-        local char = game.Players.LocalPlayer.Character
-        if not char then return end
-        
-        if value then
-            local leftLeg = char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftLeg")
-            local rightLeg = char:FindFirstChild("Right Leg") or char:FindFirstChild("RightLeg")
-            
-            if leftLeg and leftLeg:IsA("BasePart") then
-                leftLeg.BrickColor = BrickColor.new("Medium stone grey")
-                leftLeg.Material = Enum.Material.Metal
-                leftLeg.Size = Vector3.new(1.2, 1.5, 1.2)
-                local glow = Instance.new("Part")
-                glow.Name = "LegGlow"
-                glow.Size = Vector3.new(1, 0.2, 0.2)
-                glow.Position = leftLeg.Position + Vector3.new(0, 0.3, 0)
-                glow.BrickColor = BrickColor.new("Bright blue")
-                glow.Material = Enum.Material.Neon
-                glow.Anchored = true
-                glow.CanCollide = false
-                glow.Parent = char
-                table.insert(fakeLegParts, glow)
-            end
-            
-            if rightLeg and rightLeg:IsA("BasePart") then
-                rightLeg.BrickColor = BrickColor.new("Medium stone grey")
-                rightLeg.Material = Enum.Material.Metal
-                rightLeg.Size = Vector3.new(1.2, 1.5, 1.2)
-                local glow = Instance.new("Part")
-                glow.Name = "LegGlow"
-                glow.Size = Vector3.new(1, 0.2, 0.2)
-                glow.Position = rightLeg.Position + Vector3.new(0, 0.3, 0)
-                glow.BrickColor = BrickColor.new("Bright blue")
-                glow.Material = Enum.Material.Neon
-                glow.Anchored = true
-                glow.CanCollide = false
-                glow.Parent = char
-                table.insert(fakeLegParts, glow)
-            end
-            print("✅ 机械义肢已安装")
-        else
-            local leftLeg = char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftLeg")
-            local rightLeg = char:FindFirstChild("Right Leg") or char:FindFirstChild("RightLeg")
-            if leftLeg then
-                leftLeg.BrickColor = BrickColor.new("Bright red")
-                leftLeg.Material = Enum.Material.SmoothPlastic
-                leftLeg.Size = Vector3.new(1, 2, 1)
-            end
-            if rightLeg then
-                rightLeg.BrickColor = BrickColor.new("Bright red")
-                rightLeg.Material = Enum.Material.SmoothPlastic
-                rightLeg.Size = Vector3.new(1, 2, 1)
-            end
-            for _, part in pairs(fakeLegParts) do
-                pcall(function() part:Destroy() end)
-            end
-            fakeLegParts = {}
-            print("❌ 已恢复")
-        end
-    end
-})
-
-MagicTab:Toggle({
-    Title = "假无头",
-    Default = false,
-    Callback = function(value)
-        local char = game.Players.LocalPlayer.Character
-        if not char then return end
-        local head = char:FindFirstChild("Head")
-        if head and head:IsA("BasePart") then
-            head.Transparency = value and 1 or 0
-            head.CanCollide = not value
         end
     end
 })
@@ -1556,9 +1472,7 @@ shanguangSection:Button({
 
 Window:SelectTab(1)
 
-print("✅ 北极星脚本完整版已加载")
-print("📌 主要功能: 移速 | 跳跃 | 无限跳跃 | 重力 | 极速奔跑 | TPWalk | 北极星飞行 | 防甩飞 | 穿墙 | 夜视 | 防AFK")
+print("✅ 北极星脚本已加载")
+print("📌 主要功能: 移速 | 跳跃 | 无限跳跃 | 重力 | 极速奔跑 | TPWalk | 飞行 | 防甩飞 | 穿墙 | 夜视 | 防AFK")
 print("📌 透视: 玩家透视 | 2D方框 | 显示名字 | 显示距离 | 地图透视 | 去雾 | 射线 | 骨骼线条 | 血量显示 | 3D方框 | 3D悬浮卡片")
-print("📌 魔法: 假断腿(机械义肢) | 假无头")
-print("📌 兵工程: 执行兵工程脚本")
-print("📌 闪光: 执行闪光脚本")
+print("📌 兵工程 | 闪光")
