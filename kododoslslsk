@@ -1,15 +1,18 @@
+好的，一整段完整脚本：
+
+```lua
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/KingScriptAE/No-sirve-nada./refs/heads/main/main.lua"))()
 local FLOW_SPEED = 5.5
 local BORDER_THICKNESS = 1.7
 local FIXED_FONT = Enum.Font.SourceSansBold
 local WhiteFlowTheme = ColorSequence.new({
-    ColorSequenceKeypoint.new(0.00, Color3.fromHex("0A1628")),
-    ColorSequenceKeypoint.new(0.25, Color3.fromHex("1A4A7A")),
-    ColorSequenceKeypoint.new(0.45, Color3.fromHex("4A8DB7")),
-    ColorSequenceKeypoint.new(0.55, Color3.fromHex("FFFFFF")),
-    ColorSequenceKeypoint.new(0.75, Color3.fromHex("7AB8D4")),
-    ColorSequenceKeypoint.new(0.85, Color3.fromHex("2A5A8A")),
-    ColorSequenceKeypoint.new(1.00, Color3.fromHex("0A1628")),
+	ColorSequenceKeypoint.new(0.00, Color3.fromHex("0A1628")),
+	ColorSequenceKeypoint.new(0.25, Color3.fromHex("1A4A7A")),
+	ColorSequenceKeypoint.new(0.45, Color3.fromHex("4A8DB7")),
+	ColorSequenceKeypoint.new(0.55, Color3.fromHex("FFFFFF")),
+	ColorSequenceKeypoint.new(0.75, Color3.fromHex("7AB8D4")),
+	ColorSequenceKeypoint.new(0.85, Color3.fromHex("2A5A8A")),
+	ColorSequenceKeypoint.new(1.00, Color3.fromHex("0A1628")),
 })
 local borderAnimation
 local borderInitialized = false
@@ -182,10 +185,6 @@ Tabs.Info:Paragraph({
     ThumbnailSize = 120
 })
 
--- ============================================
--- 主要功能
--- ============================================
-
 Tabs.Main:Slider({
     Title = "移速",
     Step = 1,
@@ -233,9 +232,6 @@ Tabs.Main:Slider({
     end
 })
 
--- ============================================
--- 极速奔跑
--- ============================================
 local sprintEnabled = false
 local sprintSpeed = 50
 local sprintConnection = nil
@@ -307,9 +303,6 @@ Tabs.Main:Slider({
     end
 })
 
--- ============================================
--- 速度V2 (TPWalk)
--- ============================================
 local tpWalkEnabled = false
 local tpWalkConnection = nil
 local tpWalkSpeed = 5
@@ -420,9 +413,6 @@ Tabs.Main:Slider({
     end
 })
 
--- ============================================
--- 北极星飞行（你原来的源码）
--- ============================================
 local flyEnabled = false
 local flyConnection = nil
 local flySpeed = 50
@@ -619,9 +609,6 @@ Tabs.Main:Slider({
     end
 })
 
--- ============================================
--- 防甩飞
--- ============================================
 _G.AntiFling = false
 local antiFlingConnection = nil
 
@@ -653,9 +640,6 @@ Tabs.Main:Toggle({
     end
 })
 
--- ============================================
--- 穿墙
--- ============================================
 local noclipConnection
 _G.NoClip = false
 Tabs.Main:Toggle({
@@ -719,11 +703,6 @@ Tabs.Main:Toggle({
     end
 })
 
--- ============================================
--- 魔法标签页
--- ============================================
-
--- 假断腿（机械义肢）
 local fakeLegEnabled = false
 local fakeLegParts = {}
 
@@ -793,7 +772,6 @@ MagicTab:Toggle({
     end
 })
 
--- 假无头
 MagicTab:Toggle({
     Title = "假无头",
     Default = false,
@@ -807,204 +785,6 @@ MagicTab:Toggle({
         end
     end
 })
-
--- 伪装
-local copyEnabled = false
-local copyTarget = nil
-local copyConnection = nil
-
-MagicTab:Input({
-    Title = "伪装目标ID",
-    Placeholder = "输入玩家名",
-    Callback = function(input)
-        copyTarget = input
-    end
-})
-
-MagicTab:Toggle({
-    Title = "开启伪装",
-    Default = false,
-    Callback = function(value)
-        copyEnabled = value
-        if value then
-            if not copyTarget or copyTarget == "" then
-                print("❌ 请先输入玩家名")
-                return
-            end
-            local targetPlayer = nil
-            for _, p in pairs(game.Players:GetPlayers()) do
-                if p.Name:lower():find(copyTarget:lower()) or p.DisplayName:lower():find(copyTarget:lower()) then
-                    targetPlayer = p
-                    break
-                end
-            end
-            if not targetPlayer then
-                print("❌ 找不到玩家: " .. copyTarget)
-                return
-            end
-            local char = game.Players.LocalPlayer.Character
-            if char then
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                if hum then
-                    hum.DisplayName = targetPlayer.DisplayName
-                end
-            end
-            if copyConnection then copyConnection:Disconnect() end
-            copyConnection = game:GetService("RunService").Heartbeat:Connect(function()
-                if not copyEnabled then return end
-                local char2 = game.Players.LocalPlayer.Character
-                if char2 then
-                    local hum2 = char2:FindFirstChildOfClass("Humanoid")
-                    if hum2 and targetPlayer then
-                        hum2.DisplayName = targetPlayer.DisplayName
-                    end
-                end
-            end)
-            print("✅ 已伪装成: " .. targetPlayer.Name)
-        else
-            if copyConnection then
-                copyConnection:Disconnect()
-                copyConnection = nil
-            end
-            local char = game.Players.LocalPlayer.Character
-            if char then
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                if hum then
-                    hum.DisplayName = game.Players.LocalPlayer.Name
-                end
-            end
-            print("❌ 已解除伪装")
-        end
-    end
-})
-
--- 夺舍
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local lp = game.Players.LocalPlayer
-local camera = workspace.CurrentCamera
-local heartbeatConnection = nil
-local activeClone = nil
-local selectedTargetName = ""
-
-local function resetToNormal()
-    if heartbeatConnection then heartbeatConnection:Disconnect() end
-    if activeClone then activeClone:Destroy() activeClone = nil end
-    
-    local realChar = lp.Character
-    if realChar then
-        lp.Character = realChar
-        camera.CameraSubject = realChar:FindFirstChildOfClass("Humanoid")
-        for _, v in ipairs(realChar:GetDescendants()) do
-            if v:IsA("BasePart") or v:IsA("Decal") then v.Transparency = 0 end
-        end
-        if realChar:FindFirstChild("HumanoidRootPart") then
-            realChar.HumanoidRootPart.CanCollide = true
-        end
-    end
-end
-
-local function startPossess(targetName)
-    local target = Players:FindFirstChild(targetName)
-    if not target or not target.Character then 
-        print("❌ 目标玩家不存在或角色未加载")
-        return 
-    end
-
-    resetToNormal()
-    task.wait(0.2)
-
-    local targetChar = target.Character
-    local realChar = lp.Character
-
-    targetChar.Archivable = true
-    local clone = targetChar:Clone()
-    clone.Name = "PossessedClone"
-    clone.Parent = workspace
-    activeClone = clone
-
-    local cloneHum = clone:FindFirstChildOfClass("Humanoid")
-    local cloneRoot = clone:FindFirstChild("HumanoidRootPart")
-
-    if realChar then
-        for _, v in ipairs(realChar:GetDescendants()) do
-            if v:IsA("BasePart") or v:IsA("Decal") then v.Transparency = 1 end
-        end
-        if realChar:FindFirstChild("HumanoidRootPart") then
-            realChar.HumanoidRootPart.CanCollide = false
-        end
-    end
-
-    lp.Character = clone
-    camera.CameraSubject = cloneHum
-
-    local animate = clone:FindFirstChild("Animate")
-    if animate then
-        animate.Disabled = true
-        task.wait(0.1)
-        animate.Disabled = false
-    end
-
-    heartbeatConnection = RunService.Heartbeat:Connect(function()
-        if clone and cloneRoot and realChar and realChar:FindFirstChild("HumanoidRootPart") then
-            realChar.HumanoidRootPart.CFrame = cloneRoot.CFrame
-        end
-    end)
-
-    print("✅ 已夺舍: " .. targetName)
-end
-
--- 使用 WindUI 原生 Dropdown
-MagicTab:Dropdown({
-    Title = "选择夺舍目标",
-    Values = {},
-    Callback = function(value)
-        selectedTargetName = value
-        print("📌 已选择: " .. value)
-    end
-})
-
-MagicTab:Button({
-    Title = "🔄 刷新玩家列表",
-    Callback = function()
-        local names = {}
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= lp then
-                table.insert(names, p.Name)
-            end
-        end
-        for _, child in pairs(MagicTab:GetChildren()) do
-            if child:IsA("Dropdown") and child.Title == "选择夺舍目标" then
-                child:Refresh(names)
-                break
-            end
-        end
-        print("✅ 已刷新玩家列表")
-    end
-})
-
-MagicTab:Button({
-    Title = "👻 夺舍",
-    Callback = function()
-        if selectedTargetName ~= "" then
-            startPossess(selectedTargetName)
-        else
-            print("❌ 请先选择一名玩家")
-        end
-    end
-})
-
-MagicTab:Button({
-    Title = "🔄 解除夺舍",
-    Callback = function()
-        resetToNormal()
-        print("✅ 已解除夺舍")
-    end
-})
-
--- ============================================
--- 透视标签页
--- ============================================
 
 local espEnabled = false
 local box2DEnabled = false
@@ -1189,9 +969,6 @@ local function UpdateDist()
     end
 end
 
--- ============================================
--- 射线
--- ============================================
 local tracerEnabled = false
 local tracerLines = {}
 local tracerConnections = {}
@@ -1207,9 +984,6 @@ local function ClearTracers()
     tracerConnections = {}
 end
 
--- ============================================
--- 骨骼线条
--- ============================================
 local skeletonEnabled = false
 local skeletonObjects = {}
 local skeletonConnections = {}
@@ -1225,9 +999,6 @@ local function ClearSkeleton()
     skeletonConnections = {}
 end
 
--- ============================================
--- 血量显示
--- ============================================
 local healthEnabled = false
 local healthObjects = {}
 local healthConnections = {}
@@ -1243,9 +1014,6 @@ local function ClearHealth()
     healthConnections = {}
 end
 
--- ============================================
--- 3D方框
--- ============================================
 local box3DEnabled = false
 local box3DObjects = {}
 local box3DConnections = {}
@@ -1261,9 +1029,6 @@ local function ClearBox3D()
     box3DConnections = {}
 end
 
--- ============================================
--- 量子HUD卡片
--- ============================================
 local cardEnabled = false
 local cardObjects = {}
 local cardConnections = {}
@@ -1355,9 +1120,6 @@ local function UpdateCards()
     end
 end
 
--- ============================================
--- 透视开关
--- ============================================
 Tabs.ESP:Toggle({
     Title = "玩家透视",
     Default = false,
@@ -1430,9 +1192,6 @@ Tabs.ESP:Button({
     end
 })
 
--- ============================================
--- 射线
--- ============================================
 Tabs.ESP:Toggle({
     Title = "射线",
     Default = false,
@@ -1491,9 +1250,6 @@ Tabs.ESP:Toggle({
     end
 })
 
--- ============================================
--- 骨骼线条
--- ============================================
 Tabs.ESP:Toggle({
     Title = "骨骼线条",
     Default = false,
@@ -1594,9 +1350,6 @@ Tabs.ESP:Toggle({
     end
 })
 
--- ============================================
--- 血量显示
--- ============================================
 Tabs.ESP:Toggle({
     Title = "血量显示",
     Default = false,
@@ -1680,9 +1433,6 @@ Tabs.ESP:Toggle({
     end
 })
 
--- ============================================
--- 3D方框
--- ============================================
 Tabs.ESP:Toggle({
     Title = "3D方框",
     Default = false,
@@ -1778,9 +1528,6 @@ Tabs.ESP:Toggle({
     end
 })
 
--- ============================================
--- 量子HUD卡片
--- ============================================
 Tabs.ESP:Toggle({
     Title = "3D悬浮卡片",
     Default = false,
@@ -1790,9 +1537,6 @@ Tabs.ESP:Toggle({
     end
 })
 
--- ============================================
--- 兵工程
--- ============================================
 local bingSection = Tabs.Bing:Section({
     Title = "兵工程",
 })
@@ -1803,9 +1547,6 @@ bingSection:Button({
     end
 })
 
--- ============================================
--- 闪光
--- ============================================
 local shanguangSection = Tabs.Shanguang:Section({
     Title = "闪光",
 })
@@ -1821,6 +1562,7 @@ Window:SelectTab(1)
 print("✅ 北极星脚本完整版已加载")
 print("📌 主要功能: 移速 | 跳跃 | 无限跳跃 | 重力 | 极速奔跑 | TPWalk | 北极星飞行 | 防甩飞 | 穿墙 | 夜视 | 防AFK")
 print("📌 透视: 玩家透视 | 2D方框 | 显示名字 | 显示距离 | 地图透视 | 去雾 | 射线 | 骨骼线条 | 血量显示 | 3D方框 | 3D悬浮卡片")
-print("📌 魔法: 假断腿(机械义肢) | 假无头 | 伪装 | 夺舍")
+print("📌 魔法: 假断腿(机械义肢) | 假无头")
 print("📌 兵工程: 执行兵工程脚本")
 print("📌 闪光: 执行闪光脚本")
+```
