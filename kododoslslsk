@@ -1,6 +1,3 @@
-好的，一整段完整脚本：
-
-```lua
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/KingScriptAE/No-sirve-nada./refs/heads/main/main.lua"))()
 local FLOW_SPEED = 5.5
 local BORDER_THICKNESS = 1.7
@@ -1565,4 +1562,3 @@ print("📌 透视: 玩家透视 | 2D方框 | 显示名字 | 显示距离 | 地�
 print("📌 魔法: 假断腿(机械义肢) | 假无头")
 print("📌 兵工程: 执行兵工程脚本")
 print("📌 闪光: 执行闪光脚本")
-```
